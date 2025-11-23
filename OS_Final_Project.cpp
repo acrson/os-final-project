@@ -1,11 +1,11 @@
 /*****************************************************
  OS Final Project
 
- This program implements the OPT and *** page replacement algorithms,
+ This program implements the OPT and FIFO page replacement algorithms,
  calculating the number of page faults and displaying an output that
  visualizes the page replacement.
 
- Carson Stell, Dakota *insert your last name*
+ Carson Stell, Dakota Verser
 *****************************************************/
 
 using namespace std;
@@ -20,6 +20,7 @@ struct OptResult {
 };
 
 OptResult opt(int num_memory_frames, string page);
+OptResult fifo(int num_memory_frames, string page);
 void display_output(int num_memory_frames, string page, char** frame, bool* page_fault_occured);
 
 int main() {
@@ -39,6 +40,13 @@ int main() {
 		// Read from the file
 		string output;
 		ifstream Read(file_name);
+
+		// Check if file successfully opens
+		if (!Read) {
+			cout << "\nCannot read file." << endl;
+			exit(EXIT_FAILURE);
+		}
+
 		getline(Read, output);
 
 		// Output the information from the file onto the console
@@ -63,10 +71,23 @@ int main() {
 		if (output[0] == 'O') {
 			OptResult result = opt(num_memory_frames, page);
 			display_output(num_memory_frames, page, result.frame, result.page_fault_occured);
-		}
 
+			// Delete dynamically allocated memory
+			for (int i = 0; i < page.length(); i++)
+				delete[] result.frame[i];
+			delete[] result.frame;
+			delete[] result.page_fault_occured;
+		}
+		
 		else if (output[0] == 'F') {
-			;
+			OptResult result = fifo(num_memory_frames, page);
+			display_output(num_memory_frames, page, result.frame, result.page_fault_occured);
+			
+			// Delete dynamically allocated memory
+			for (int i = 0; i < page.length(); i++)
+				delete[] result.frame[i];
+			delete[] result.frame;
+			delete[] result.page_fault_occured;
 		}
 
 		else if (output[0] == 'L') {
@@ -87,6 +108,8 @@ int main() {
 		cout << "\n\n";
 
 	} while (running == 'y' || running == 'Y');
+
+	return 0;
 }
 
 // Optimal page replacement algorithm
@@ -181,6 +204,110 @@ OptResult opt(int num_memory_frames, string page) {
 	OptResult result;
 	result.frame = frame;
 	result.page_fault_occured = page_fault_occured;
+
+	// Display number of page faults
+	cout << endl << "Number of page faults: " << num_page_faults << endl;
+
+	return result;
+}
+
+// FIFO page replacement algroithm
+OptResult fifo(int num_memory_frames, string page) {
+	// Dynamically allocate 2d array of characters, initialize space as 'empty' value
+	char** frame = new char* [page.length()];
+	bool* page_fault_occured = new bool[page.length()];
+
+	for (int i = 0; i < page.length(); ++i) {
+		frame[i] = new char[num_memory_frames];
+	}
+
+	for (int i = 0; i < page.length(); i++) {
+		page_fault_occured[i] = false;
+		for (int j = 0; j < num_memory_frames; j++) {
+			frame[i][j] = ' ';
+		}
+	}
+
+	// Declare variables
+	int num_page_faults = 0;
+	int firstin = 0; // Index of first item in frame
+
+	// IMPLEMENT FIFO PAGE REPLACEMENT ALGORITHM
+	for (int frame_index = 0; frame_index < page.length(); frame_index++) {
+
+		// Copy the page memory from the last time index
+		if (frame_index > 0) {
+			for (int memory_index = 0; memory_index < num_memory_frames; memory_index++) {
+				frame[frame_index][memory_index] = frame[frame_index - 1][memory_index];
+			}
+		}
+
+		bool page_fault = false;
+
+		// detect if page is already present
+		bool already_present = false;
+		for (int memory_index = 0; memory_index < num_memory_frames; memory_index++) {
+			if (frame[frame_index][memory_index] == page[frame_index]) {
+				already_present = true;
+				break;
+			}
+		}
+
+		// If page already exists, no fault, skip insertion
+		if (already_present) {
+			page_fault_occured[frame_index] = false;
+			continue;
+		}
+
+		// Find next-use distance for each loaded page (OPT logic)
+		int largest_distance = -1;
+		int memory_index_of_largest_distance = 0;
+
+		for (int memory_index = 0; memory_index < num_memory_frames; memory_index++) {
+
+			char current_page = frame[frame_index][memory_index];
+
+			// If memory frame is empty, this memory frame should be chosen
+			if (current_page == ' ') {
+				largest_distance = 9999;
+				memory_index_of_largest_distance = memory_index;
+				break;
+			}
+
+			// Compute distance until next use
+			int d = 1;
+			while (frame_index + d < page.length() &&
+				page[frame_index + d] != current_page) {
+				d++;
+			}
+
+			// If never used again
+			if (frame_index + d >= page.length()) {
+				d = 9999;
+			}
+
+			if (d > largest_distance) {
+				largest_distance = d;
+				memory_index_of_largest_distance = memory_index;
+			}
+		}
+
+		// Replace page in selected frame
+		frame[frame_index][firstin] = page[frame_index];
+		// Change firstin index
+		firstin = (firstin + 1) % num_memory_frames;
+		page_fault = true;
+		num_page_faults++;
+
+		page_fault_occured[frame_index] = page_fault;
+	}
+
+	OptResult result;
+	result.frame = frame;
+	result.page_fault_occured = page_fault_occured;
+
+	// Display number of page faults
+	cout << endl << "Number of page faults: " << num_page_faults << endl;
 
 	return result;
 }
