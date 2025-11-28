@@ -68,8 +68,11 @@ int main() {
 
 		// Identify which page replacement algorithm is being used, use respective
 		// function associated with said algorithm
+		// OPT
 		if (output[0] == 'O') {
+			// Run OPT function
 			OptResult result = opt(num_memory_frames, page);
+			// Display Output
 			display_output(num_memory_frames, page, result.frame, result.page_fault_occured);
 
 			// Delete dynamically allocated memory
@@ -78,9 +81,11 @@ int main() {
 			delete[] result.frame;
 			delete[] result.page_fault_occured;
 		}
-		
+		// FIFO
 		else if (output[0] == 'F') {
+			// Run FIFO function
 			OptResult result = fifo(num_memory_frames, page);
+			// Display Output
 			display_output(num_memory_frames, page, result.frame, result.page_fault_occured);
 			
 			// Delete dynamically allocated memory
@@ -89,7 +94,7 @@ int main() {
 			delete[] result.frame;
 			delete[] result.page_fault_occured;
 		}
-
+		// LRU
 		else if (output[0] == 'L') {
 			;
 		}
@@ -200,7 +205,7 @@ OptResult opt(int num_memory_frames, string page) {
 
 		page_fault_occured[frame_index] = page_fault;
 	}
-
+	// Save Results
 	OptResult result;
 	result.frame = frame;
 	result.page_fault_occured = page_fault_occured;
@@ -259,39 +264,6 @@ OptResult fifo(int num_memory_frames, string page) {
 			continue;
 		}
 
-		// Find next-use distance for each loaded page (OPT logic)
-		int largest_distance = -1;
-		int memory_index_of_largest_distance = 0;
-
-		for (int memory_index = 0; memory_index < num_memory_frames; memory_index++) {
-
-			char current_page = frame[frame_index][memory_index];
-
-			// If memory frame is empty, this memory frame should be chosen
-			if (current_page == ' ') {
-				largest_distance = 9999;
-				memory_index_of_largest_distance = memory_index;
-				break;
-			}
-
-			// Compute distance until next use
-			int d = 1;
-			while (frame_index + d < page.length() &&
-				page[frame_index + d] != current_page) {
-				d++;
-			}
-
-			// If never used again
-			if (frame_index + d >= page.length()) {
-				d = 9999;
-			}
-
-			if (d > largest_distance) {
-				largest_distance = d;
-				memory_index_of_largest_distance = memory_index;
-			}
-		}
-
 		// Replace page in selected frame
 		frame[frame_index][firstin] = page[frame_index];
 		// Change firstin index
@@ -301,7 +273,7 @@ OptResult fifo(int num_memory_frames, string page) {
 
 		page_fault_occured[frame_index] = page_fault;
 	}
-
+	// Save Results
 	OptResult result;
 	result.frame = frame;
 	result.page_fault_occured = page_fault_occured;
